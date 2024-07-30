@@ -7,8 +7,6 @@
         node_directory: /docker/NodeX
         node_prefix: node
         zabbix_config: zabbix_agentd.conf
-        sshd_config: sshd_config
-        entry_point: entrypoint.sh
       block:
 
         - name: Install python3-docker
@@ -18,30 +16,38 @@
             pkg:
               - python3-docker
 
-        - name: Создание конфига для Zabbix
-          shell:
-            sed 's/Hostname=Zabbix server/Hostname="{{ item }}"/' zabbix_agentd.conf >  "{{ node_prefix }}{{ item }}"_zabbix_agentd.conf
-          args:
-            chdir: "{{ node_directory }}"
-          loop: "{{ range(1) | list }}"
-#          register: out
-#
-#        - name: Debug
-#          debug:
-#            var: out
-
-        - name: build container image
+        - name: Создаём Image для Node
           docker_image:
-            name: '{{ node_prefix }}1222'
+            name: '{{ node_prefix }}'
             source: build
             build:
               path: "{{ node_directory }}"
             state: present
 
-        - name: Create container
+        - name: Запускаем контейнеры с NodeX
           docker_container:
             name: "{{ node_prefix }}{{ item }}"
             image: "{{ node_prefix }}"
             state: started
-            ports: "2002{{ item }}:22"
+            ports:
+              - "2002{{ item }}:22"
+              - "2005{{ item }}:10051"
           loop: "{{ range(2) | list }}"
+
+        - name: Изменение Hostname в конфиге для Zabbix_agent
+          community.docker.docker_container_exec:
+            container: "{{ node_prefix }}{{ item }}"
+            command:
+              /bin/bash -c "sed -i 's/Hostname=Zabbix server/Hostname="{{ node_prefix }}{{ item }}"/' /etc/zabbix/zabbix_agentd.conf"
+          loop: "{{ range(2) | list }}"
+
+        - name: Перечитаем конфиг Zabbix внутри контейнера
+          community.docker.docker_container_exec:
+            container: "{{ node_prefix }}{{ item }}"
+            command: /usr/sbin/zabbix_agentd -R userparameter_reload
+          loop: "{{ range(2) | list }}"
+          register: result
+
+        - name: Print stdout
+          debug:
+            var: result
