@@ -1,0 +1,47 @@
+- name: NodeX config
+  hosts: dockers
+  tasks:
+    - name: Модификация конфигов
+      become: yes
+      vars:
+        node_directory: /docker/NodeX
+        node_prefix: node
+        zabbix_config: zabbix_agentd.conf
+        sshd_config: sshd_config
+        entry_point: entrypoint.sh
+      block:
+
+        - name: Install python3-docker
+          apt:
+            update_cache: true
+            cache_valid_time: 3600
+            pkg:
+              - python3-docker
+
+        - name: Создание конфига для Zabbix
+          shell:
+            sed 's/Hostname=Zabbix server/Hostname="{{ item }}"/' zabbix_agentd.conf >  "{{ node_prefix }}{{ item }}"_zabbix_agentd.conf
+          args:
+            chdir: "{{ node_directory }}"
+          loop: "{{ range(1) | list }}"
+#          register: out
+#
+#        - name: Debug
+#          debug:
+#            var: out
+
+        - name: build container image
+          docker_image:
+            name: '{{ node_prefix }}1222'
+            source: build
+            build:
+              path: "{{ node_directory }}"
+            state: present
+
+        - name: Create container
+          docker_container:
+            name: "{{ node_prefix }}{{ item }}"
+            image: "{{ node_prefix }}"
+            state: started
+            ports: "2002{{ item }}:22"
+          loop: "{{ range(2) | list }}"
