@@ -17,7 +17,7 @@
             pkg:
               - python3-docker
 
-        - name: create build directory
+        - name: Создаём директорию для сборки
           file:
             path: '{{ node_directory }}'
             state: directory
@@ -25,13 +25,16 @@
             group: root
             mode: '0755'
 
-        - name: copy Dockerfile etc...
+        - name: Копируем Dockerfile + остальные файлы для сборки контейнера...
           copy:
             src: ./service/
             dest: '{{ node_directory }}'
             owner: root
             group: root
             mode: '0644'
+
+        - name: Делаем "entrypoint.sh" исполняемым "+x"
+          file: "dest={{ node_directory }}/entrypoint.sh mode=a+x"
 
         - name: Создаём Image для Node
           docker_image:
@@ -45,6 +48,10 @@
           docker_container:
             name: "{{ node_prefix }}{{ item }}"
             image: "{{ node_prefix }}"
+            hostname: "{{ node_prefix }}{{ item }}"
+            memory: 256M
+            networks:
+              - name: "zabbix-docker_backend"
             state: started
             ports:
               - "2002{{ item }}:22"
