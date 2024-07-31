@@ -1,2 +1,3 @@
 .idea
 hosts.ini
+service/id_rsa.pub

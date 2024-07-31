@@ -17,6 +17,22 @@
             pkg:
               - python3-docker
 
+        - name: create build directory
+          file:
+            path: '{{ node_directory }}'
+            state: directory
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: copy Dockerfile etc...
+          copy:
+            src: ./service/
+            dest: '{{ node_directory }}'
+            owner: root
+            group: root
+            mode: '0644'
+
         - name: Создаём Image для Node
           docker_image:
             name: '{{ node_prefix }}'
