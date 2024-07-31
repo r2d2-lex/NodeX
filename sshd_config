@@ -1,0 +1,7 @@
+Include /etc/ssh/sshd_config.d/*.conf
+PermitRootLogin yes
+AuthorizedKeysFile      .ssh/authorized_keys
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
+Subsystem       sftp    internal-sftp
