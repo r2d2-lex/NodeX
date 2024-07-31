@@ -51,7 +51,7 @@
             hostname: "{{ node_prefix }}{{ item }}"
             memory: 256M
             networks:
-              - name: "zabbix-docker_backend"
+              - name: "zabbix-docker_frontend"
             state: started
             ports:
               - "2002{{ item }}:22"
