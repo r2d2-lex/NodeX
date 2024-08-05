@@ -7,6 +7,7 @@
         node_directory: /docker/NodeX
         node_prefix: node
         node_count: 2
+        node_name: "{{ node_prefix }}{{ '%02d' | format(item) }}"
         zabbix_config: zabbix_agentd.conf
       block:
 
@@ -46,28 +47,28 @@
 
         - name: Запускаем контейнеры с NodeX
           docker_container:
-            name: "{{ node_prefix }}{{ item }}"
+            name: "{{ node_name }}"
             image: "{{ node_prefix }}"
-            hostname: "{{ node_prefix }}{{ item }}"
+            hostname: "{{ node_name }}"
             memory: 256M
-            networks:
-              - name: "zabbix-docker_frontend"
+#            networks:
+#              - name: "zabbix_zabbix-net"
             state: started
             ports:
-              - "2002{{ item }}:22"
-              - "2005{{ item }}:10050"
+              - "{{ 20020 + item }}:22"
+              - "{{ 30050 + item }}:10050"
           loop: "{{ range(node_count) | list }}"
 
         - name: Изменение Hostname в конфиге для Zabbix_agent
           community.docker.docker_container_exec:
-            container: "{{ node_prefix }}{{ item }}"
+            container: "{{ node_name }}"
             command:
-              /bin/bash -c "sed -i 's/Hostname=Zabbix server/Hostname="{{ node_prefix }}{{ item }}"/' /etc/zabbix/zabbix_agentd.conf"
+              /bin/bash -c "sed -i 's/Hostname=Zabbix server/Hostname="{{ node_name }}"/' /etc/zabbix/zabbix_agentd.conf"
           loop: "{{ range(node_count) | list }}"
 
         - name: Перечитаем конфиг Zabbix внутри контейнера
           community.docker.docker_container_exec:
-            container: "{{ node_prefix }}{{ item }}"
+            container: "{{ node_name }}"
             command: /bin/bash -c "killall zabbix_agentd; /usr/sbin/zabbix_agentd"
           loop: "{{ range(node_count) | list }}"
           register: result
